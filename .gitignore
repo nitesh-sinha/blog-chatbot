@@ -1,0 +1,4 @@
+*.pyc
+chroma/
+.idea/
+setup.env
