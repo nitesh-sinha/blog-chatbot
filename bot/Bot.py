@@ -70,7 +70,7 @@ class Bot:
         cur_chain = self.make_chain()
         bot_response = cur_chain({
             "question": question_summary,
-            "chat_history": "",
+            "chat_history": "",  # ConversationalRetrievalChain uses chat_history internally in a prompt
             "blog_name": self.blog_name,
             "contact_info": self.contact_info,
             "blog_url": self.blog_url,

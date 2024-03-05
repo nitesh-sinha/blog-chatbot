@@ -7,7 +7,6 @@ from crawler.webpage import WebPage
 class WebPageParser:
     def __init__(self, url: str):
         self.url = url
-        #self.parsed_webpage: WebPage = None
 
     def parse(self) -> WebPage:
         page_soup = self._download_page()

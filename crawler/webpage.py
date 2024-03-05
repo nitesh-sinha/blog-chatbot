@@ -5,7 +5,3 @@ from typing import Optional
 class WebPage:
     text: str
     metadata: Optional[dict]
-    # url: str
-    # title: Optional[str]
-    # description: Optional[str]
-    # meta_keywords: Optional[str]
