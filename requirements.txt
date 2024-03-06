@@ -3,3 +3,4 @@ langchain-openai==0.0.7
 chromadb==0.4.24
 bs4==0.0.2
 html2text==2024.2.26
+lxml==5.1.0
