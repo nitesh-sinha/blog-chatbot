@@ -19,6 +19,7 @@ if __name__ == '__main__':
     )
     crawler = BlogCrawler(blog.blog_url)
     loc_tags = crawler.crawl()
+    #print(loc_tags)
     vector_db = ChromaDb()
     for loc_tag in tqdm(loc_tags):
         # Add wait to fix Embedding API rate limits
