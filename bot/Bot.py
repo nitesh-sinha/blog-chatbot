@@ -1,5 +1,5 @@
 from langchain.chains.base import Chain
-from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain.prompts import (ChatPromptTemplate, SystemMessagePromptTemplate,
                                HumanMessagePromptTemplate, PromptTemplate)
 from vector_db.chroma_db import ChromaDb
@@ -43,8 +43,8 @@ class Bot:
         self.blog_writer = blog_writer
         self.blog_url = blog_url
         self.contact_info = contact_info
-        self.model = ChatOpenAI(
-            model_name="gpt-3.5-turbo",
+        self.model = ChatOllama(
+            model="mistral",
             temperature=0.0,
             verbose=True
         )
@@ -66,7 +66,7 @@ class Bot:
         # summarize the question
         question_summary = self.summarize_question(chat_history, question)
 
-        # Feed this summary_question in the next call to QA model
+        # Feed this summary_question in the next call to QuestionAnswer model
         cur_chain = self.make_chain()
         bot_response = cur_chain({
             "question": question_summary,
@@ -86,7 +86,7 @@ class Bot:
         # This retrieves the relevant docs from vector store
         # based on input query, then uses them as additional
         # context along with system prompt, chat history and human query
-        # to query the ChatGPT model to answer the query
+        # to query the AI model to answer the query
         return ConversationalRetrievalChain.from_llm(
             self.model,
             retriever=vector_db_retriever,

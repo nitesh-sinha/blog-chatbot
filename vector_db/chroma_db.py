@@ -1,11 +1,11 @@
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 
 class ChromaDb:
     def get_client(self) -> Chroma:
         client = Chroma(
             collection_name="blog_data",
-            embedding_function=OpenAIEmbeddings(),
+            embedding_function=OllamaEmbeddings(model="mistral"),
             persist_directory="chroma/datastore"
 
         )
