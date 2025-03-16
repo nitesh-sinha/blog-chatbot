@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup as bs
 
+
 class BlogCrawler:
     def __init__(self, blog_url: str):
         self.blog_base_url = blog_url
