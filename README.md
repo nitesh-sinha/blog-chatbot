@@ -1,20 +1,137 @@
-AI chatbot/assistant for my personal blog at www.technibbana.com
+# Blog Chatbot
 
-#### Redis CLI to view chat history
-```commandline
-# To view all the keys(* makes it resource intensive for larger datasets. Avoid in production)
+A generic AI chatbot/assistant for websites and blogs that can crawl your content and answer questions based on that content.
+
+## Features
+
+- Crawls your website/blog to gather content
+- Creates vector embeddings for semantic search
+- Interactive chat interface to query blog content
+- Maintains conversation history using Redis
+- Containerized with Docker for easy deployment
+- Customizable for any website or blog
+
+## Quick Start with Docker
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- OpenAI API key (for embeddings and chat completion)
+- Ollama installed and running on your host machine
+
+### Setup
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/nitesh-sinha/blog-chatbot.git
+   cd blog-chatbot
+   ```
+
+2. Create a `.env` file based on the example:
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Edit the `.env` file and add your API keys and blog information:
+   ```
+   BLOG_NAME=Your Blog Name
+   BLOG_OWNER=Your Name
+   BLOG_URL=https://yourblog.com/
+   BLOG_CONTACT=your-email@example.com
+   ```
+
+4. Download an AI model and run locally using Ollama. This code was tested using `mistral` model.
+
+   ```bash
+   ollama run mistral:latest
+   ```
+
+5. Start the application with Docker Compose:
+   ```bash
+   docker-compose run chatbot
+   ```
+
+   To update embeddings when starting (e.g., if running this for first time or blog content has changed since prior run):
+   ```bash
+   UPDATE_EMBEDDINGS=true docker-compose run chatbot
+   ```
+
+6. Interact with the chatbot through the stdin of the docker chatbot container.
+
+## Running Without Docker
+
+If you prefer not to use Docker, you can run the application directly:
+
+1. Install Redis on your system
+2. Create a virtual environment and install dependencies:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp sample-setup.env setup.env
+   # Edit setup.env with your API keys
+   source setup.env
+   ```
+
+4. Download an AI model and run locally using Ollama. This code was tested using `mistral` model.
+
+   ```bash
+   ollama run mistral:latest
+   ```
+
+5. Run the application:
+   ```bash
+   python main.py --blog-name "Your Blog Name" --blog-owner "Your Name" \
+                 --blog-url "https://yourblog.com/" --blog-contact "your-email@example.com" \
+                 --update-embeddings  # Optional: Add this flag to update embeddings
+   ```
+
+## Customization
+
+You can customize the chatbot by modifying the source files:
+
+- `bot/Bot.py`: Customize the bot's behavior and responses
+- `crawler/crawl_blog.py`: Customize the crawling behavior
+- `vector_db/chroma_db.py`: Customize the vector database configuration
+
+## Publishing to Docker Hub
+
+To publish your own version of the chatbot to Docker Hub:
+
+1. Build the Docker image:
+   ```bash
+   docker build -t <yourusername>/blog-chatbot:latest .
+   ```
+
+2. Log in to Docker Hub:
+   ```bash
+   docker login
+   ```
+
+3. Push the image to Docker Hub:
+   ```bash
+   docker push <yourusername>/blog-chatbot:latest
+   ```
+
+Note: The chatbot image(without Redis) is published as `niteshks/blog-chatbot:latest` on Dockerhub.
+
+## Redis CLI to view chat history
+
+```bash
+# To view all the keys
 redis-cli KEYS "*"
-1) "message_store:SESSION_60035"
-2) "message_store:SESSION_24819"
 
 # Check message type stored against a specific key
 redis-cli Type message_store:SESSION_60035
-list
 
 # Check message content against a specific key
 redis-cli LRANGE message_store:SESSION_60035 0 -1
-1) "{\"type\": \"ai\", \"data\": {\"content\": \" Hello! I'm here to help you with your questions related to TechNibbana blog.\\n\\n   You asked about the difference between Cross-Origin Resource Sharing (CORS) and Content Security Policy (CSP).\\n\\n   Cross-Origin Resource Sharing (CORS) is a mechanism that allows a web page from one domain to request resources from another domain. It helps prevent unauthorized access to resources by allowing browsers to make requests to servers outside the domain from which the web page was loaded, under certain conditions.\\n\\n   On the other hand, Content Security Policy (CSP) is a security feature for websites that helps prevent Cross-Site Scripting (XSS) attacks and other code injection attacks. It does this by specifying a set of rules in an HTTP response header that defines what types of content are allowed to be loaded on the website, such as scripts, stylesheets, images, etc.\\n\\n   In summary, while CORS is about allowing cross-origin requests, CSP is about restricting the types of content that can be loaded from other origins in order to prevent potential security threats.\\n\\n   For more detailed information and examples, you may want to check out these resources:\\n\\n   - [MDN Web Docs: Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)\\n   - [OWASP: Content Security Policy (CSP)](https://owasp.org/www-community/images/7/72/Content_Security_Policy_Quick_Reference_Cheatsheet.pdf)\", \"additional_kwargs\": {}, \"response_metadata\": {}, \"type\": \"ai\", \"name\": null, \"id\": null, \"example\": false, \"tool_calls\": [], \"invalid_tool_calls\": [], \"usage_metadata\": null}}"
-2) "{\"type\": \"human\", \"data\": {\"content\": \"whats the difference between CORS and CSP?\", \"additional_kwargs\": {}, \"response_metadata\": {}, \"type\": \"human\", \"name\": null, \"id\": null, \"example\": false}}"
-3) "{\"type\": \"ai\", \"data\": {\"content\": \" To answer your question, here are some popular dishes that you might consider offering in your casual dining restaurant in Bangalore, India:\\n\\n1. Butter Chicken (Murgh Makhani) - A rich and creamy dish made with chicken cooked in a tomato-based gravy flavored with butter and spices.\\n2. Paneer Tikka - Grilled cubes of paneer (Indian cottage cheese) marinated in yogurt, spices, and often served with a mint chutney.\\n3. Rava Fried Fish (Rava Fish Fry) - A crispy fried fish dish made with semolina (rava) and various spices.\\n4. Bisi Bele Bath - A traditional South Indian rice dish made with lentils, vegetables, and spices.\\n5. Idli Sambar - A popular breakfast dish consisting of steamed rice cakes (idlis) served with a spicy lentil soup (sambar).\\n6. Masala Dosa - A thin, crispy pancake made from fermented rice and lentil batter filled with potatoes, onions, and spices.\\n7. Chicken Biryani - A flavorful rice dish made with marinated chicken, basmati rice, and a variety of aromatic spices.\\n8. Mysore Pak - A traditional sweet dish made from gram flour (besan), sugar, ghee, and water.\\n9. Vada Sambar - Deep-fried lentil fritters served with a spicy lentil soup (sambar).\\n10. Ragi Mudde - A ball-shaped dish made from finger millet (ragi) flour, often served with sambar or vegetable curry.\\n\\nYou can find more information about these dishes and other popular Indian dishes on the following links:\\n\\n* [Top 25 Indian Dishes You Must Try](https://www.foodnetwork.in/articles/top-25-indian-dishes-you-must-try-16348)\\n* [Popular South Indian Dishes Every Foodie Should Know](https://www.onlymydreamstakeflight.com/popular-south-indian-dishes/)\\n* [20 Best Street Foods in Bangalore You Must Try](https://www.foodelhi.in/best-street-foods-bangalore/)\", \"additional_kwargs\": {}, \"response_metadata\": {}, \"type\": \"ai\", \"name\": null, \"id\": null, \"example\": false, \"tool_calls\": [], \"invalid_tool_calls\": [], \"usage_metadata\": null}}"
-4) "{\"type\": \"human\", \"data\": {\"content\": \"what are popular dishes in bangalore?\", \"additional_kwargs\": {}, \"response_metadata\": {}, \"type\": \"human\", \"name\": null, \"id\": null, \"example\": false}}"
 ```
+
+## License
+
+[MIT License](LICENSE)

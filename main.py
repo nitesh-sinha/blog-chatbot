@@ -1,4 +1,6 @@
 import time
+import argparse
+import os
 from crawler.parse_webpage import WebPageParser
 from crawler.crawl_blog import BlogCrawler
 from dotenv import load_dotenv
@@ -11,8 +13,7 @@ from tqdm import tqdm
 import random
 
 
-def create_blog_text_embeddings(loc_tags):
-    vector_db = ChromaDb()
+def create_blog_text_embeddings(loc_tags, vector_db):
     for loc_tag in tqdm(loc_tags):
         # Add wait to fix OpenAI's Embedding API rate limits
         # TODO: Make it more sophisticated by sending more
@@ -31,37 +32,81 @@ def create_blog_text_embeddings(loc_tags):
         vector_db.store_webpage(doc_chunks)
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Blog chatbot application')
+    parser.add_argument('--blog-name', type=str, help='Name of the blog', required=True)
+    parser.add_argument('--blog-owner', type=str, help='Owner of the blog', required=True)
+    parser.add_argument('--blog-url', type=str, help='URL of the blog', required=True)
+    parser.add_argument('--blog-contact', type=str, help='Contact email for the blog', required=True)
+    parser.add_argument('--redis-url', type=str, default="redis://localhost:6379/0", 
+                        help='Redis URL for chat history storage')
+    parser.add_argument('--update-embeddings', action='store_true', 
+                        help='Update vector embeddings for the blog content')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    load_dotenv("setup.env")
-    # TODO: Generate session_id for every user session
-    # e.g: To keep chat history separate. every new chat
-    # tab that the user opens can create a new user session_id.
-    session_id = random.randint(10000,99999)
+    # Load environment variables
+    env_file = "setup.env"
+    if os.path.exists(env_file):
+        load_dotenv(env_file)
+    else:
+        print(f"Warning: {env_file} not found. Make sure environment variables are set.")
+
+    # Parse command-line arguments
+    args = parse_arguments()
+    
+    # Generate session ID for user
+    session_id = random.randint(10000, 99999)
     print(f"User session id: {session_id}")
-    REDIS_URL = "redis://localhost:6379/0"
-    USER_SESSION_ID = f"SESSION_{session_id}"
+    
+    # Set up Redis connection
+    redis_url = args.redis_url
+    user_session_id = f"SESSION_{session_id}"
+    
+    # Create blog instance with parameters from command-line
     blog = Blog(
-        blog_name="TechNibbana",
-        blog_owner="Nitesh Sinha",
-        blog_url="https://technibbana.wordpress.com/",
-        blog_contact="nitesh@technibbana.com"
+        blog_name=args.blog_name,
+        blog_owner=args.blog_owner,
+        blog_url=args.blog_url,
+        blog_contact=args.blog_contact
     )
+    
+    # Crawl the blog for content
     crawler = BlogCrawler(blog.blog_url)
     loc_tags = crawler.crawl()
-    # Uncomment next statement when some additions/updates are published to blog
-    # to update the vector embeddings for bot's QA model to use
-    # create_blog_text_embeddings(loc_tags)
+    
+    # Create or update vector embeddings if requested
+    if args.update_embeddings:
+        print("Updating vector embeddings for blog content...")
+        vector_db = ChromaDb()
+        create_blog_text_embeddings(loc_tags, vector_db)
+    
+    # Initialize the bot
     ai_bot = Bot(blog_name=blog.blog_name,
                  contact_info=blog.blog_contact,
                  blog_writer=blog.blog_owner,
                  blog_url=blog.blog_url)
-    chat_history = RedisChatMessageHistory(url=REDIS_URL, session_id=USER_SESSION_ID)
+    
+    # Set up chat history
+    chat_history = RedisChatMessageHistory(url=redis_url, session_id=user_session_id)
+    
+    print(f"\nWelcome to the {blog.blog_name} chatbot!")
+    print(f"This bot will help you find information about {blog.blog_name}.")
+    print("Type 'exit' or 'quit' to end the session.\n")
+    
+    # Start chat loop
     while True:
         user_query = input("Hey there! What do you want to know about today? ")
+        
+        # Check if user wants to exit
+        if user_query.lower() in ['exit', 'quit']:
+            print("Thank you for using the chatbot. Goodbye!")
+            break
+            
         answer = ai_bot.get_response(question=user_query, chat_history=chat_history.messages)
         print(answer)
-        # Chat history will be summarized later.
-        # TODO: Can be trimmed to last N messages if
-        #  latency observed during longer chats
+        
+        # Store chat history
         chat_history.add_user_message(user_query)
         chat_history.add_ai_message(answer)

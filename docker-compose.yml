@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  chatbot:
+    build: .
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=host.docker.internal
+    command: >
+      --blog-name "${BLOG_NAME}" 
+      --blog-owner "${BLOG_OWNER}" 
+      --blog-url "${BLOG_URL}" 
+      --blog-contact "${BLOG_CONTACT}"
+      --redis-url "redis://redis:6379/0"
+      ${UPDATE_EMBEDDINGS:+--update-embeddings}
+    depends_on:
+      - redis
+    volumes:
+      - ./chroma:/app/chroma
+    stdin_open: true
+    tty: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data: 

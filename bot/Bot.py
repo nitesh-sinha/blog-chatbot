@@ -3,9 +3,11 @@ from langchain_ollama import ChatOllama
 from langchain.prompts import (ChatPromptTemplate, SystemMessagePromptTemplate,
                                HumanMessagePromptTemplate, PromptTemplate)
 from vector_db.chroma_db import ChromaDb
-from langchain.chains import ConversationalRetrievalChain, LLMChain
+from langchain.chains import ConversationalRetrievalChain
+from langchain_core.runnables import RunnablePassthrough, RunnableSequence
+import os
 
-from typing import Any
+from typing import Any, Dict
 
 SYSTEM_PROMPT_TEMPLATE = """
 You are the AI soul behind this blog {blog_name} and so possess all the knowledge from it.
@@ -43,10 +45,16 @@ class Bot:
         self.blog_writer = blog_writer
         self.blog_url = blog_url
         self.contact_info = contact_info
+        
+        # Get Ollama host from environment variable or use default
+        ollama_host = os.environ.get("OLLAMA_HOST", "localhost")
+        ollama_base_url = f"http://{ollama_host}:11434"
+        
         self.model = ChatOllama(
             model="mistral",
             temperature=0.0,
-            verbose=True
+            verbose=True,
+            base_url=ollama_base_url
         )
 
     # Summarizes the user query based on the chat history
@@ -56,11 +64,13 @@ class Bot:
             input_variables=["chat_history", "question"],
             template=QUESTION_GENERATOR_TEMPLATE
         )
-        question_summ_chain = LLMChain(llm=self.model, prompt=question_prompt)
-        return question_summ_chain.run({
+        # Using the new RunnableSequence pattern instead of LLMChain
+        question_summ_chain = question_prompt | self.model
+        result = question_summ_chain.invoke({
             "chat_history": chat_history,
             "question": question
         })
+        return result.content
 
     def get_response(self, question, chat_history: list[Any]):
         # summarize the question
@@ -68,7 +78,8 @@ class Bot:
 
         # Feed this summary_question in the next call to QuestionAnswer model
         cur_chain = self.make_chain()
-        bot_response = cur_chain({
+        # Using the new invoke method
+        bot_response = cur_chain.invoke({
             "question": question_summary,
             "chat_history": "",  # ConversationalRetrievalChain uses chat_history internally in a prompt
             "blog_name": self.blog_name,
